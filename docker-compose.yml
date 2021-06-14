@@ -1,0 +1,62 @@
+version: "3.7"
+
+services:
+  directus-app:
+    container_name: directus-app
+    build:
+      context: ./packages/app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - directus-network
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - directus-pg-db
+    links:
+      - directus-pg-db
+
+  directus-pg-db:
+    image: postgres:12-alpine
+    restart: always
+    container_name: directus-pg-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - directus-network
+
+  directus-pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: directus-pgadmin
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+    volumes:
+      - pgadmin:/root/.pgadmin
+    ports:
+      - "${PGADMIN_PORT}:80"
+    depends_on:
+      - directus-pg-db
+    networks:
+      - directus-network
+
+volumes:
+  pgdata:
+  pgadmin:
+
+networks:
+  directus-network:
+    driver: bridge
